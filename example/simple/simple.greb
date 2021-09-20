@@ -1,0 +1,8 @@
+package simple
+
+request Simple {
+    ID      query:int       validate:"required"
+    Name    form:string     validate:"required"
+    Weight  json:float
+    IsAlive form:bool
+}

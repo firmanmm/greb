@@ -1,0 +1,8 @@
+*.exe*
+*.bin*
+*vendor.gomp
+*.ini
+*vscode
+*.backup
+*.log
+.vscode/
