@@ -142,6 +142,8 @@ func (g *Generator) _GenerateFieldUnmarshaller(group *jen.Group, field *Field) e
 		bindType = "BIND_TYPE_COOKIE"
 	case "header":
 		bindType = "BIND_TYPE_HEADER"
+	case "param":
+		bindType = "BIND_TYPE_PARAM"
 	default:
 		return fmt.Errorf("Unsupported type %s in field %s", field.Type, field.Identifier)
 	}

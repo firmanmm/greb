@@ -2,6 +2,7 @@ package simple
 
 request Simple {
     ID              query:int           validate:"required"
+    GroupID         param:int           alias:"group_id"
     Name            form:string         validate:"required"
     Weight          json:float          alias:"weight"
     IsAlive         form:bool

@@ -22,6 +22,7 @@ const (
 	BIND_TYPE_JSON   BindType = 3
 	BIND_TYPE_HEADER BindType = 4
 	BIND_TYPE_COOKIE BindType = 5
+	BIND_TYPE_PARAM  BindType = 6
 )
 
 type IBindable interface {
@@ -42,6 +43,11 @@ func _ResolveData(req *http.Request, key string, bindType BindType) string {
 			return ""
 		}
 		return cookie.Value
+	case BIND_TYPE_PARAM:
+		if URLParamBindFunc != nil {
+			return URLParamBindFunc(req, key)
+		}
+		return ""
 	default:
 		return ""
 	}

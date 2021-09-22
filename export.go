@@ -1,11 +1,15 @@
 package greb
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/go-playground/validator/v10"
 )
 
+type URLParamBind func(req *http.Request, key string) string
+
+var URLParamBindFunc URLParamBind
 var _InternalValidator = validator.New()
 
 func Generate(fileName string) (string, error) {
