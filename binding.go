@@ -17,9 +17,11 @@ const (
 type BindType uint
 
 const (
-	BIND_TYPE_FORM  BindType = 1
-	BIND_TYPE_QUERY BindType = 2
-	BIND_TYPE_JSON  BindType = 3
+	BIND_TYPE_FORM   BindType = 1
+	BIND_TYPE_QUERY  BindType = 2
+	BIND_TYPE_JSON   BindType = 3
+	BIND_TYPE_HEADER BindType = 4
+	BIND_TYPE_COOKIE BindType = 5
 )
 
 type IBindable interface {
@@ -32,6 +34,14 @@ func _ResolveData(req *http.Request, key string, bindType BindType) string {
 		return req.PostFormValue(key)
 	case BIND_TYPE_QUERY:
 		return req.URL.Query().Get(key)
+	case BIND_TYPE_HEADER:
+		return req.Header.Get(key)
+	case BIND_TYPE_COOKIE:
+		cookie, err := req.Cookie(key)
+		if err != nil {
+			return ""
+		}
+		return cookie.Value
 	default:
 		return ""
 	}

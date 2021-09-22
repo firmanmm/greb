@@ -15,4 +15,5 @@ type Field struct {
 	Type       string  `@Ident`
 	DataType   string  `":"@Ident`
 	Validation *string `("validate"":"@String)?`
+	Alias      *string `("alias"":"@String)?`
 }

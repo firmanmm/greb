@@ -8,10 +8,12 @@ import (
 )
 
 type Simple struct {
-	ID      int     `json:"-" validate:"required"`
-	Name    string  `json:"-" validate:"required"`
-	Weight  float64 `json:"Weight"`
-	IsAlive bool    `json:"-"`
+	ID            int     `json:"-" validate:"required"`
+	Name          string  `json:"-" validate:"required"`
+	Weight        float64 `json:"weight"`
+	IsAlive       bool    `json:"-"`
+	Authorization string  `json:"-" validate:"required"`
+	SessionID     string  `json:"-"`
 }
 
 func (x *Simple) BindRequest(req *http.Request) error {
@@ -29,6 +31,14 @@ func (x *Simple) BindRequest(req *http.Request) error {
 		return err
 	}
 	x.IsAlive, err = greb.BindBool(req, "IsAlive", greb.BIND_TYPE_FORM)
+	if err != nil {
+		return err
+	}
+	x.Authorization, err = greb.BindString(req, "x-authorization", greb.BIND_TYPE_HEADER)
+	if err != nil {
+		return err
+	}
+	x.SessionID, err = greb.BindString(req, "SessionID", greb.BIND_TYPE_COOKIE)
 	if err != nil {
 		return err
 	}

@@ -61,6 +61,9 @@ func (g *Generator) _GenerateField(group *jen.Group, field *Field) (jen.Code, er
 	jsonTag := "-"
 	if field.Type == "json" {
 		jsonTag = field.Identifier
+		if field.Alias != nil {
+			jsonTag = *field.Alias
+		}
 	}
 	mapTag := map[string]string{
 		"json": jsonTag,
@@ -135,13 +138,21 @@ func (g *Generator) _GenerateFieldUnmarshaller(group *jen.Group, field *Field) e
 		bindType = "BIND_TYPE_QUERY"
 	case "form":
 		bindType = "BIND_TYPE_FORM"
+	case "cookie":
+		bindType = "BIND_TYPE_COOKIE"
+	case "header":
+		bindType = "BIND_TYPE_HEADER"
 	default:
 		return fmt.Errorf("Unsupported type %s in field %s", field.Type, field.Identifier)
 	}
 
 	if bindType != "" {
+		name := field.Identifier
+		if field.Alias != nil {
+			name = *field.Alias
+		}
 		stmt.Qual("github.com/firmanmm/greb", bindFunc).CallFunc(func(group *jen.Group) {
-			group.Id("req").Op(",").Lit(field.Identifier).Op(",").Qual("github.com/firmanmm/greb", bindType)
+			group.Id("req").Op(",").Lit(name).Op(",").Qual("github.com/firmanmm/greb", bindType)
 		})
 		group.IfFunc(func(group *jen.Group) {
 			group.Err().Op("!=").Nil()

@@ -1,8 +1,10 @@
 package simple
 
 request Simple {
-    ID      query:int       validate:"required"
-    Name    form:string     validate:"required"
-    Weight  json:float
-    IsAlive form:bool
+    ID              query:int           validate:"required"
+    Name            form:string         validate:"required"
+    Weight          json:float          alias:"weight"
+    IsAlive         form:bool
+    Authorization   header:string       validate:"required" alias:"x-authorization"
+    SessionID       cookie:string
 }
