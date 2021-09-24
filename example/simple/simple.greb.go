@@ -2,13 +2,13 @@ package simple
 
 import (
 	"encoding/json"
-	"net/http"
-
 	greb "github.com/firmanmm/greb"
+	"net/http"
 )
 
 type Simple struct {
 	ID            int     `json:"-" validate:"required"`
+	GroupID       int     `json:"-"`
 	Name          string  `json:"-" validate:"required"`
 	Weight        float64 `json:"weight"`
 	IsAlive       bool    `json:"-"`
@@ -23,6 +23,10 @@ func (x *Simple) BindRequest(req *http.Request) error {
 	}
 	var err error
 	x.ID, err = greb.BindInt(req, "ID", greb.BIND_TYPE_QUERY)
+	if err != nil {
+		return err
+	}
+	x.GroupID, err = greb.BindInt(req, "group_id", greb.BIND_TYPE_PARAM)
 	if err != nil {
 		return err
 	}
