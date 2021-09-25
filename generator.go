@@ -32,7 +32,7 @@ func (g *Generator) _GenerateRequest(jenFile *jen.File, request *Request, reques
 	var gerr error
 	jenFile.Type().Id(request.Name).StructFunc(func(group *jen.Group) {
 		for _, field := range request.Fields {
-			if field.Type == "json" {
+			if field.Type == "json" || field.Type == "request" {
 				hasJSON = true
 			}
 			_, err := g._GenerateField(group, field, requestMap)
@@ -45,7 +45,7 @@ func (g *Generator) _GenerateRequest(jenFile *jen.File, request *Request, reques
 	if gerr != nil {
 		return nil, gerr
 	}
-	return g._GenerateBindRequest(jenFile, request, hasJSON, requestMap)
+	return g._GenerateBindRequest(jenFile, request, hasJSON)
 }
 
 func (g *Generator) _GenerateField(group *jen.Group, field *Field, requestMap map[string]*Request) (jen.Code, error) {
@@ -84,7 +84,7 @@ func (g *Generator) _GenerateField(group *jen.Group, field *Field, requestMap ma
 	return stmt, nil
 }
 
-func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, hasJSON bool, requestMap map[string]*Request) (jen.Code, error) {
+func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, hasJSON bool) (jen.Code, error) {
 	jenStmt := jenFile.Func().ParamsFunc(func(group *jen.Group) {
 		group.Id("x").Op("*").Id(request.Name)
 	}).Id("BindRequest").ParamsFunc(func(group *jen.Group) {
@@ -96,17 +96,13 @@ func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, ha
 		group.Var().Err().Error()
 		boolHasValidation := false
 		for _, field := range request.Fields {
-			if field.Type == "json" {
+			if field.Type == "json" || field.Type == "request" {
 				continue
 			}
 			if field.Validation != nil {
 				boolHasValidation = true
 			}
-			if req, ok := requestMap[field.DataType]; ok {
-				g._GenerateNestedMarshaller(group, req, field)
-			} else {
-				g._GenerateFieldUnmarshaller(group, field)
-			}
+			g._GenerateFieldUnmarshaller(group, field)
 		}
 		if boolHasValidation {
 			g._GenerateValidator(group, request)
@@ -187,22 +183,6 @@ func (g *Generator) _GenerateValidator(group *jen.Group, request *Request) error
 		}).Op(";").Err().Op("!=").Nil()
 	}).BlockFunc(func(group *jen.Group) {
 		group.Return(jen.Err())
-	})
-	return nil
-}
-
-func (g *Generator) _GenerateNestedMarshaller(group *jen.Group, request *Request, field *Field) error {
-	group.IfFunc(func(group *jen.Group) {
-		group.Id("x").Op(".").Id(request.Name).Op("!=").Nil().
-			BlockFunc(func(group *jen.Group) {
-				group.IfFunc(func(group *jen.Group) {
-					group.Err().Op(":=").Id("x").Op(".").Id(request.Name).Op(".").Id("BindRequest").CallFunc(func(group *jen.Group) {
-						group.Id("req")
-					}).Op(";").Err().Op("!=").Nil()
-				}).BlockFunc(func(group *jen.Group) {
-					group.Return(jen.Err())
-				})
-			})
 	})
 	return nil
 }
