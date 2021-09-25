@@ -2,8 +2,9 @@ package simple
 
 import (
 	"encoding/json"
-	greb "github.com/firmanmm/greb"
 	"net/http"
+
+	greb "github.com/firmanmm/greb"
 )
 
 type Simple struct {
@@ -14,6 +15,7 @@ type Simple struct {
 	IsAlive       bool    `json:"-"`
 	Authorization string  `json:"-" validate:"required"`
 	SessionID     string  `json:"-"`
+	Avatar        []byte  `json:"-"`
 }
 
 func (x *Simple) BindRequest(req *http.Request) error {
@@ -43,6 +45,10 @@ func (x *Simple) BindRequest(req *http.Request) error {
 		return err
 	}
 	x.SessionID, err = greb.BindString(req, "SessionID", greb.BIND_TYPE_COOKIE)
+	if err != nil {
+		return err
+	}
+	x.Avatar, err = greb.BindBytes(req, "avatar", greb.BIND_TYPE_FORM)
 	if err != nil {
 		return err
 	}

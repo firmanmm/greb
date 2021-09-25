@@ -1,4 +1,4 @@
-package simple
+package nested
 
 request Simple {
     ID              query:int           validate:"required"
@@ -9,4 +9,10 @@ request Simple {
     Authorization   header:string       validate:"required" alias:"x-authorization"
     SessionID       cookie:string
     Avatar          form:bytes          alias:"avatar"
+}
+
+request Nested {
+    ID      param:int       validate:"required" alias:"id"
+    Name    form:string     validate:"required"
+    Data    request:Simple  alias:"data"
 }

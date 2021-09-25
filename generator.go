@@ -13,8 +13,12 @@ type Generator struct{}
 
 func (g *Generator) Generate(ast *Greb) (string, error) {
 	jenFile := jen.NewFile(ast.Package)
+	requestMap := map[string]*Request{}
 	for _, request := range ast.Requests {
-		g._GenerateRequest(jenFile, request)
+		requestMap[request.Name] = request
+	}
+	for _, request := range ast.Requests {
+		g._GenerateRequest(jenFile, request, requestMap)
 	}
 	buffer := bytes.NewBuffer(nil)
 	if err := jenFile.Render(buffer); err != nil {
@@ -23,7 +27,7 @@ func (g *Generator) Generate(ast *Greb) (string, error) {
 	return buffer.String(), nil
 }
 
-func (g *Generator) _GenerateRequest(jenFile *jen.File, request *Request) (jen.Code, error) {
+func (g *Generator) _GenerateRequest(jenFile *jen.File, request *Request, requestMap map[string]*Request) (jen.Code, error) {
 	hasJSON := false
 	var gerr error
 	jenFile.Type().Id(request.Name).StructFunc(func(group *jen.Group) {
@@ -31,7 +35,7 @@ func (g *Generator) _GenerateRequest(jenFile *jen.File, request *Request) (jen.C
 			if field.Type == "json" {
 				hasJSON = true
 			}
-			_, err := g._GenerateField(group, field)
+			_, err := g._GenerateField(group, field, requestMap)
 			if err != nil {
 				gerr = fmt.Errorf("%s on request %s", err.Error(), request.Name)
 				return
@@ -41,10 +45,10 @@ func (g *Generator) _GenerateRequest(jenFile *jen.File, request *Request) (jen.C
 	if gerr != nil {
 		return nil, gerr
 	}
-	return g._GenerateBindRequest(jenFile, request, hasJSON)
+	return g._GenerateBindRequest(jenFile, request, hasJSON, requestMap)
 }
 
-func (g *Generator) _GenerateField(group *jen.Group, field *Field) (jen.Code, error) {
+func (g *Generator) _GenerateField(group *jen.Group, field *Field, requestMap map[string]*Request) (jen.Code, error) {
 	stmt := group.Id(field.Identifier)
 	switch field.DataType {
 	case "int":
@@ -55,11 +59,16 @@ func (g *Generator) _GenerateField(group *jen.Group, field *Field) (jen.Code, er
 		stmt.Bool()
 	case "string":
 		stmt.String()
+	case "bytes":
+		stmt.Op("[]").Byte()
 	default:
-		return nil, fmt.Errorf("Unsupported type %s in field %s", field.Type, field.Identifier)
+		if _, ok := requestMap[field.DataType]; !ok {
+			return nil, fmt.Errorf("Unsupported type %s in field %s", field.Type, field.Identifier)
+		}
+		stmt.Op("*").Id(field.DataType)
 	}
 	jsonTag := "-"
-	if field.Type == "json" {
+	if field.Type == "json" || field.Type == "request" {
 		jsonTag = field.Identifier
 		if field.Alias != nil {
 			jsonTag = *field.Alias
@@ -75,7 +84,7 @@ func (g *Generator) _GenerateField(group *jen.Group, field *Field) (jen.Code, er
 	return stmt, nil
 }
 
-func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, hasJSON bool) (jen.Code, error) {
+func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, hasJSON bool, requestMap map[string]*Request) (jen.Code, error) {
 	jenStmt := jenFile.Func().ParamsFunc(func(group *jen.Group) {
 		group.Id("x").Op("*").Id(request.Name)
 	}).Id("BindRequest").ParamsFunc(func(group *jen.Group) {
@@ -93,7 +102,11 @@ func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, ha
 			if field.Validation != nil {
 				boolHasValidation = true
 			}
-			g._GenerateFieldUnmarshaller(group, field)
+			if req, ok := requestMap[field.DataType]; ok {
+				g._GenerateNestedMarshaller(group, req, field)
+			} else {
+				g._GenerateFieldUnmarshaller(group, field)
+			}
 		}
 		if boolHasValidation {
 			g._GenerateValidator(group, request)
@@ -130,6 +143,8 @@ func (g *Generator) _GenerateFieldUnmarshaller(group *jen.Group, field *Field) e
 		bindFunc = "BindBool"
 	case "string":
 		bindFunc = "BindString"
+	case "bytes":
+		bindFunc = "BindBytes"
 	default:
 		return fmt.Errorf("Unsupported type %s in field %s", field.Type, field.Identifier)
 	}
@@ -172,6 +187,22 @@ func (g *Generator) _GenerateValidator(group *jen.Group, request *Request) error
 		}).Op(";").Err().Op("!=").Nil()
 	}).BlockFunc(func(group *jen.Group) {
 		group.Return(jen.Err())
+	})
+	return nil
+}
+
+func (g *Generator) _GenerateNestedMarshaller(group *jen.Group, request *Request, field *Field) error {
+	group.IfFunc(func(group *jen.Group) {
+		group.Id("x").Op(".").Id(request.Name).Op("!=").Nil().
+			BlockFunc(func(group *jen.Group) {
+				group.IfFunc(func(group *jen.Group) {
+					group.Err().Op(":=").Id("x").Op(".").Id(request.Name).Op(".").Id("BindRequest").CallFunc(func(group *jen.Group) {
+						group.Id("req")
+					}).Op(";").Err().Op("!=").Nil()
+				}).BlockFunc(func(group *jen.Group) {
+					group.Return(jen.Err())
+				})
+			})
 	})
 	return nil
 }

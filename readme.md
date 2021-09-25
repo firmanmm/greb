@@ -41,6 +41,7 @@ Binding data type is the data type to bind to.
 |float|Decimal value|
 |string|Literally string|
 |bool|`true` or `false`|
+|bytes|Uses multipart when in form, and base64 in other scenario|
 
 ### Binding Tag
 Binding Tag is to extend greb's functionality. Tags can be combined for fun.

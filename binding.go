@@ -1,6 +1,8 @@
 package greb
 
 import (
+	"encoding/base64"
+	"io"
 	"net/http"
 	"strconv"
 )
@@ -71,4 +73,17 @@ func BindString(req *http.Request, key string, bindType BindType) (string, error
 func BindBool(req *http.Request, key string, bindType BindType) (bool, error) {
 	data := _ResolveData(req, key, bindType)
 	return strconv.ParseBool(data)
+}
+
+func BindBytes(req *http.Request, key string, bindType BindType) ([]byte, error) {
+	if bindType == BIND_TYPE_FORM {
+		rawFile, _, err := req.FormFile(key)
+		if err != nil {
+			return nil, err
+		}
+		return io.ReadAll(rawFile)
+	} else {
+		b64Res := _ResolveData(req, key, bindType)
+		return base64.StdEncoding.DecodeString(b64Res)
+	}
 }
