@@ -16,12 +16,15 @@ type Simple struct {
 	Authorization string  `json:"-" validate:"required"`
 	SessionID     string  `json:"-"`
 	Avatar        []byte  `json:"-"`
+	_X_CHILD      bool    `json:"-"`
 }
 
 func (x *Simple) BindRequest(req *http.Request) error {
-	decoder := json.NewDecoder(req.Body)
-	if err := decoder.Decode(x); err != nil {
-		return err
+	if !x._X_CHILD {
+		decoder := json.NewDecoder(req.Body)
+		if err := decoder.Decode(x); err != nil {
+			return err
+		}
 	}
 	var err error
 	x.ID, err = greb.BindInt(req, "ID", greb.BIND_TYPE_QUERY)
@@ -52,22 +55,27 @@ func (x *Simple) BindRequest(req *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if err := greb.Validate(x); err != nil {
-		return err
+	if !x._X_CHILD {
+		if err := greb.Validate(x); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 type Nested struct {
-	ID   int     `json:"-" validate:"required"`
-	Name string  `json:"-" validate:"required"`
-	Data *Simple `json:"data"`
+	ID       int     `json:"-" validate:"required"`
+	Name     string  `json:"-" validate:"required"`
+	Data     *Simple `json:"data"`
+	_X_CHILD bool    `json:"-"`
 }
 
 func (x *Nested) BindRequest(req *http.Request) error {
-	decoder := json.NewDecoder(req.Body)
-	if err := decoder.Decode(x); err != nil {
-		return err
+	if !x._X_CHILD {
+		decoder := json.NewDecoder(req.Body)
+		if err := decoder.Decode(x); err != nil {
+			return err
+		}
 	}
 	var err error
 	x.ID, err = greb.BindInt(req, "id", greb.BIND_TYPE_PARAM)
@@ -78,8 +86,16 @@ func (x *Nested) BindRequest(req *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if err := greb.Validate(x); err != nil {
-		return err
+	if x.Data != nil {
+		x.Data._X_CHILD = true
+		if err := x.Data.BindRequest(req); err != nil {
+			return err
+		}
+	}
+	if !x._X_CHILD {
+		if err := greb.Validate(x); err != nil {
+			return err
+		}
 	}
 	return nil
 }
