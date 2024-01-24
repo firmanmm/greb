@@ -97,15 +97,17 @@ func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, ha
 			g._GenerateJSONUnmarshaller(group, request)
 		}
 		boolHasValidation := false
+		hasBinding := false
 		for _, field := range request.Fields {
 			if field.Validation != nil {
-				if !boolHasValidation {
-					group.Var().Err().Error()
-				}
 				boolHasValidation = true
 			}
 			if field.Type == "json" {
 				continue
+			}
+			if !hasBinding {
+				group.Var().Err().Error()
+				hasBinding = true
 			}
 			if req, ok := requestMap[field.DataType]; ok {
 				g._GenerateNestedMarshaller(group, req, field)
