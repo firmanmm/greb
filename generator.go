@@ -99,11 +99,11 @@ func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, ha
 		group.Var().Err().Error()
 		boolHasValidation := false
 		for _, field := range request.Fields {
-			if field.Type == "json" {
-				continue
-			}
 			if field.Validation != nil {
 				boolHasValidation = true
+			}
+			if field.Type == "json" {
+				continue
 			}
 			if req, ok := requestMap[field.DataType]; ok {
 				g._GenerateNestedMarshaller(group, req, field)
