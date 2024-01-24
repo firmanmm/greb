@@ -96,10 +96,12 @@ func (g *Generator) _GenerateBindRequest(jenFile *jen.File, request *Request, ha
 		if hasJSON {
 			g._GenerateJSONUnmarshaller(group, request)
 		}
-		group.Var().Err().Error()
 		boolHasValidation := false
 		for _, field := range request.Fields {
 			if field.Validation != nil {
+				if !boolHasValidation {
+					group.Var().Err().Error()
+				}
 				boolHasValidation = true
 			}
 			if field.Type == "json" {
